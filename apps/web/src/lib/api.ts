@@ -63,7 +63,7 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
 function calcRetryDelay(attempt: number, base = 1000): number {
   const buf = new Uint32Array(1)
   crypto.getRandomValues(buf)
-  const jitter = (buf[0]! / 2 ** 32) * 500
+  const jitter = ((buf[0] ?? 0) / 2 ** 32) * 500
   return Math.min(base * 2 ** attempt, 10_000) + jitter
 }
 
@@ -98,7 +98,7 @@ async function request<T>(path: string, config: RequestConfig = {}): Promise<T> 
     if (pending) return pending as Promise<T>
   }
 
-  const execute = async (attempt: number): Promise<T> => {
+  const execute = async (): Promise<T> => {
     const headers = await getAuthHeaders()
     const controller = new AbortController()
     const timerId = setTimeout(() => controller.abort(), timeout)
@@ -139,7 +139,7 @@ async function request<T>(path: string, config: RequestConfig = {}): Promise<T> 
   const withRetry = async (): Promise<T> => {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        return await execute(attempt)
+        return await execute()
       } catch (err) {
         const isRetryable =
           attempt < retries &&

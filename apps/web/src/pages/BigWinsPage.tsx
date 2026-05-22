@@ -1,16 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  Trophy,
-  Plus,
-  CheckCircle,
-  Clock,
-  XCircle,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  Sparkles,
-} from 'lucide-react'
+import { Plus, CheckCircle, Clock, XCircle, Eye, EyeOff, ArrowRight, Sparkles } from 'lucide-react'
 import { api } from '../lib/api'
 import { formatSC, timeAgo, cn } from '../lib/utils'
 import { ScrollReveal } from '../components/fx/ScrollReveal'

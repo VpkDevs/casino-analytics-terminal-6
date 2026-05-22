@@ -1,34 +1,47 @@
 import { storage, AnalyticsEvent } from '../lib/storage'
 
+type StorageCallback = (items: Record<string, unknown>) => void
+type StorageGetterArg =
+  | string
+  | string[]
+  | Record<string, unknown>
+  | StorageCallback
+  | null
+  | undefined
+
 describe('StorageManager', () => {
-  let mockStorage: Record<string, any>
+  let mockStorage: Record<string, unknown>
   beforeEach(() => {
     mockStorage = {}
+    const selectStorage = (keys?: Exclude<StorageGetterArg, StorageCallback>) => {
+      if (keys == null) return { ...mockStorage }
+      if (typeof keys === 'string') return { [keys]: mockStorage[keys] }
+      if (Array.isArray(keys)) {
+        const res: Record<string, unknown> = {}
+        for (const key of keys) res[key] = mockStorage[key]
+        return res
+      }
+      return Object.fromEntries(
+        Object.entries(keys).map(([key, defaultValue]) => [key, mockStorage[key] ?? defaultValue])
+      )
+    }
     // stub chrome.storage.local
-    ;(global as any).chrome = {
+    ;(global as typeof globalThis & { chrome: typeof chrome }).chrome = {
       storage: {
         local: {
-          get: vi.fn((keys?: any, cb?: any) => {
+          get: vi.fn((keys?: StorageGetterArg, cb?: StorageCallback) => {
             // support promise-style and callback-style
             if (typeof keys === 'function') {
               cb = keys
               keys = undefined
             }
             if (cb) {
-              if (keys == null) cb(mockStorage)
-              else if (Array.isArray(keys)) {
-                const res: any = {}
-                for (const k of keys) res[k] = mockStorage[k]
-                cb(res)
-              } else {
-                cb({ [keys]: mockStorage[keys] })
-              }
+              cb(selectStorage(keys))
               return
             }
-            // return promise
-            return Promise.resolve(keys == null ? mockStorage : { [keys]: mockStorage[keys] })
+            return Promise.resolve(selectStorage(keys))
           }),
-          set: vi.fn((obj: any) => {
+          set: vi.fn((obj: Record<string, unknown>) => {
             Object.assign(mockStorage, obj)
             return Promise.resolve()
           }),
@@ -41,7 +54,7 @@ describe('StorageManager', () => {
           addListener: vi.fn(),
         },
       },
-    }
+    } as unknown as typeof chrome
   })
 
   it('returns default values when empty', async () => {
@@ -91,9 +104,9 @@ describe('StorageManager', () => {
     const cb = vi.fn()
     storage.onChanged(cb)
     // simulate chrome event
-    const listener = (chrome.storage.onChanged.addListener as any).mock.calls[0][0]
+    const listener = vi.mocked(chrome.storage.onChanged.addListener).mock.calls[0]?.[0]
     const changes = { hudEnabled: { oldValue: true, newValue: false } }
-    listener(changes, 'local')
+    listener?.(changes, 'local')
     expect(cb).toHaveBeenCalledWith(changes)
   })
 })
