@@ -278,24 +278,27 @@ function MarkCompleteModal({
   redemption: Record<string, unknown> | null
   onClose: () => void
 }) {
-  if (!redemption) return null
-
   const qc = useQueryClient()
   const [completedAt, setCompletedAt] = useState(new Date().toISOString().split('T')[0])
-  const redemptionId = redemption['redemption_id'] as string
+  const redemptionId =
+    typeof redemption?.['redemption_id'] === 'string' ? redemption['redemption_id'] : ''
 
   const mutation = useMutation({
-    mutationFn: () =>
-      api.redemptions.update(redemptionId, {
+    mutationFn: () => {
+      if (!redemptionId) throw new Error('Missing redemption id')
+      return api.redemptions.update(redemptionId, {
         status: 'completed',
         completed_at: completedAt,
-      }),
+      })
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['redemptions'] })
       void qc.invalidateQueries({ queryKey: ['redemptions', 'stats'] })
       onClose()
     },
   })
+
+  if (!redemption) return null
 
   const requestedDate = new Date(redemption['requested_at'] as string)
   const completedDate = new Date(completedAt)

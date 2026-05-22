@@ -176,11 +176,11 @@ export function WinLossHeatmap({ className, timeRange = '30d' }: HeatmapProps) {
                 <span className="text-xs font-medium text-zinc-500">{day}</span>
               </div>
 
-                {/* Hour cells */}
-                <div className="grid-cols-24 grid flex-1 gap-0.5">
-                  {HOURS.map((hour) => {
-                    const cell = grid[dayIndex]?.[hour] ?? null
-                    const hasData = cell && cell.sessions > 0
+              {/* Hour cells */}
+              <div className="grid-cols-24 grid flex-1 gap-0.5">
+                {HOURS.map((hour) => {
+                  const cell = grid[dayIndex]?.[hour] ?? null
+                  const hasData = cell && cell.sessions > 0
 
                   return (
                     <div

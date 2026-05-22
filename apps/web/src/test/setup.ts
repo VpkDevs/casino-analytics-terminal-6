@@ -3,7 +3,7 @@
  * Configures testing environment for React components
  */
 
-import { afterEach, beforeAll, afterAll, vi } from 'vitest'
+import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
@@ -27,35 +27,29 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 })
 
-class MockIntersectionObserver implements IntersectionObserver {
-  readonly root = null
-  readonly rootMargin = ''
-  readonly thresholds = []
-
-  disconnect(): void {}
-  observe(): void {}
-  takeRecords(): IntersectionObserverEntry[] {
+// Mock IntersectionObserver (used by many UI components)
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  takeRecords() {
     return []
   }
-  unobserve(): void {}
-}
-
-// Mock IntersectionObserver (used by many UI components)
-global.IntersectionObserver = MockIntersectionObserver
+  unobserve() {}
+} as any
 
 // Mock ResizeObserver (used by many chart components)
-class MockResizeObserver implements ResizeObserver {
-  disconnect(): void {}
-  observe(): void {}
-  unobserve(): void {}
-}
-
-global.ResizeObserver = MockResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor() {}
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+} as any
 
 // Suppress specific console errors in tests (optional)
 const originalError = console.error
 beforeAll(() => {
-  console.error = (...args: unknown[]) => {
+  console.error = (...args: any[]) => {
     if (typeof args[0] === 'string' && args[0].includes('Warning: ReactDOM.render')) {
       return
     }

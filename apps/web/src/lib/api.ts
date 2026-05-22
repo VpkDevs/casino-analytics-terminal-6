@@ -98,7 +98,7 @@ async function request<T>(path: string, config: RequestConfig = {}): Promise<T> 
     if (pending) return pending as Promise<T>
   }
 
-  const execute = async (_attempt: number): Promise<T> => {
+  const execute = async (): Promise<T> => {
     const headers = await getAuthHeaders()
     const controller = new AbortController()
     const timerId = setTimeout(() => controller.abort(), timeout)
@@ -139,7 +139,7 @@ async function request<T>(path: string, config: RequestConfig = {}): Promise<T> 
   const withRetry = async (): Promise<T> => {
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        return await execute(attempt)
+        return await execute()
       } catch (err) {
         const isRetryable =
           attempt < retries &&
