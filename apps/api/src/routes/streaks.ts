@@ -100,19 +100,33 @@ export async function streaksRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      // Reset current_streak to 0 for any user whose last_activity_date is
-      // strictly before yesterday (i.e. they missed at least one day).
-      const { rows } = await query<{ affected: number }>(sql`
-        UPDATE user_streaks
-        SET current_streak = 0, updated_at = NOW()
-        WHERE last_activity_date < CURRENT_DATE - INTERVAL '1 day'
-          AND current_streak > 0
-        RETURNING user_id
+      const { rows } = await query<{ users_protected: number; users_reset: number }>(sql`
+        WITH updated AS (
+          UPDATE user_streaks
+          SET
+            current_streak = CASE WHEN freeze_credits > 0 THEN current_streak ELSE 0 END,
+            last_activity_date = CASE
+              WHEN freeze_credits > 0 THEN CURRENT_DATE - 1
+              ELSE last_activity_date
+            END,
+            freeze_credits = GREATEST(0, freeze_credits - 1),
+            updated_at = NOW()
+          WHERE last_activity_date < CURRENT_DATE - INTERVAL '1 day'
+            AND current_streak > 0
+          RETURNING current_streak > 0 AS was_protected
+        )
+        SELECT
+          COUNT(*) FILTER (WHERE was_protected)::int AS users_protected,
+          COUNT(*) FILTER (WHERE NOT was_protected)::int AS users_reset
+        FROM updated
       `)
 
       return reply.send({
         success: true,
-        data: { usersReset: rows.length },
+        data: {
+          usersProtected: rows[0]?.users_protected ?? 0,
+          usersReset: rows[0]?.users_reset ?? 0,
+        },
       })
     } catch (error) {
       app.log.error({ error }, 'POST /streaks/nightly-check error')
